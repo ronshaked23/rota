@@ -6,7 +6,12 @@ on:
     # The script itself double-checks the real Israel local time before sending.
     - cron: "0 17 * * *"
     - cron: "0 18 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Send now, ignoring the 20:00 time check (for testing)"
+        type: boolean
+        default: false
 
 jobs:
   notify:
@@ -22,3 +27,4 @@ jobs:
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          FORCE_SEND: ${{ inputs.force }}

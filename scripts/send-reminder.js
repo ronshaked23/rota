@@ -8,7 +8,7 @@ var hour = new Intl.DateTimeFormat("en-GB", {
   hour12: false
 }).format(new Date());
 
-if (hour !== "20") {
+if (hour !== "20" && process.env.FORCE_SEND !== "true") {
   console.log("Not 20:00 Israel time (it's " + hour + ":xx), skipping.");
   process.exit(0);
 }
