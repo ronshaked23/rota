@@ -1,0 +1,8 @@
+{
+  "name": "rota-reminder",
+  "private": true,
+  "description": "Sends the daily 20:00 workout push notification via GitHub Actions.",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

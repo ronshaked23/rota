@@ -175,6 +175,7 @@ var DONE = "#4CD07D";
 var BETA_TIMER = 8;
 var KEY = "rota:v3";
 var MS_DAY = 86400000;
+var VAPID_PUBLIC_KEY = "BCEvcsGqxMMCoC9CLbDX0Azo8ln45q0HbAEx8fMSIds6kKJucRyINmJTMvEfK7dK0LDAAZlcvqPYld6dc_F7s4E";
 
 function fp(p) { return "https://fitnessprogramer.com/wp-content/uploads/" + p; }
 function proxy(u) { return "https://wsrv.nl/?url=" + encodeURIComponent(u.replace(/^https?:\/\//, "")) + "&n=-1"; }
@@ -274,12 +275,55 @@ var S = {
   progress: {},
   beta: false,
   view: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
-  screen: "home",     // home | day | session | finished
+  screen: "home",     // home | day | session | finished | reminder
   dayKey: null,
   session: null,
-  saved: ""
+  saved: "",
+  reminderOn: false,
+  reminderSub: null
 };
 var timerHandle = null;
+
+/* ---------------- Reminders (push) ---------------- */
+function urlBase64ToUint8Array(base64String) {
+  var padding = "=".repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  var raw = atob(base64);
+  var arr = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+function checkReminderStatus() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  navigator.serviceWorker.getRegistration().then(function (reg) {
+    if (!reg) return;
+    reg.pushManager.getSubscription().then(function (sub) {
+      if (sub) { S.reminderOn = true; render(); }
+    });
+  });
+}
+async function enableReminders() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    alert("Push notifications aren't supported here. On iPhone: add ROTA to your Home Screen first (Share → Add to Home Screen), then open it from there — needs iOS 16.4+.");
+    return;
+  }
+  try {
+    var reg = await navigator.serviceWorker.register("./sw.js");
+    var perm = await Notification.requestPermission();
+    if (perm !== "granted") { alert("Notification permission was not granted."); return; }
+    var existing = await reg.pushManager.getSubscription();
+    var sub = existing || await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    S.reminderOn = true;
+    S.reminderSub = JSON.stringify(sub);
+    S.screen = "reminder";
+    render();
+  } catch (e) {
+    alert("Couldn't enable reminders: " + e.message);
+  }
+}
 
 function load() {
   try {
@@ -437,6 +481,7 @@ function render() {
   else if (S.screen === "day") renderDay();
   else if (S.screen === "session") renderSession();
   else if (S.screen === "finished") renderFinished();
+  else if (S.screen === "reminder") renderReminder();
 }
 
 function renderHome() {
@@ -452,6 +497,9 @@ function renderHome() {
   var b = el("button", "chip " + (S.beta ? "beta-on" : "beta-off"), "\u03B2");
   b.onclick = function () { S.beta = !S.beta; render(); };
   chips.appendChild(b);
+  var bell = el("button", "chip " + (S.reminderOn ? "beta-on" : "beta-off"), "\uD83D\uDD14");
+  bell.onclick = enableReminders;
+  chips.appendChild(bell);
   chips.appendChild(el("div", "chip", "\uD83D\uDD25 " + streak()));
   head.appendChild(chips);
   app.appendChild(head);
@@ -731,7 +779,48 @@ function renderFinished() {
   app.appendChild(ov);
 }
 
+function renderReminder() {
+  var ov = el("div", "overlay");
+  var h = el("div", "ov-head");
+  var x = el("button", "icon-btn", "✕");
+  x.onclick = function () { S.screen = "home"; render(); };
+  h.appendChild(x);
+  h.appendChild(el("div", "ov-date", "Daily reminder"));
+  var sp = el("div"); sp.style.width = "30px"; h.appendChild(sp);
+  ov.appendChild(h);
+
+  var body = el("div", "sess-body");
+  body.appendChild(el("div", "sess-name", "Reminders enabled on this device"));
+  body.appendChild(el("div", "cue",
+    "One last step: copy the code below and paste it back to Claude in chat. That links this device to the daily 20:00 reminder."));
+  var ta = document.createElement("textarea");
+  ta.value = S.reminderSub || "";
+  ta.readOnly = true;
+  ta.style.width = "100%"; ta.style.height = "100px"; ta.style.marginTop = "14px";
+  ta.style.background = "#1A1E24"; ta.style.color = "#F1F3F5"; ta.style.border = "1px solid #2E3540";
+  ta.style.borderRadius = "10px"; ta.style.fontSize = "10px"; ta.style.padding = "8px"; ta.style.fontFamily = "monospace";
+  ta.style.resize = "none";
+  body.appendChild(ta);
+  ov.appendChild(body);
+
+  var f = el("div", "footer");
+  var cp = el("button", "btn-primary", "Copy code");
+  cp.style.background = "#A879E0";
+  cp.onclick = function () {
+    ta.select();
+    if (navigator.clipboard) navigator.clipboard.writeText(S.reminderSub || "").catch(function () {});
+    else document.execCommand("copy");
+    cp.textContent = "Copied!";
+    setTimeout(function () { cp.textContent = "Copy code"; }, 1500);
+  };
+  f.appendChild(cp);
+  ov.appendChild(f);
+
+  app.appendChild(ov);
+}
+
 load();
+checkReminderStatus();
 render();
 </script>
 </body>

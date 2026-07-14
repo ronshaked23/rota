@@ -1,0 +1,24 @@
+name: Daily workout reminder
+
+on:
+  schedule:
+    # 17:00 and 18:00 UTC cover 20:00 Israel time across both DST offsets (IDT/IST).
+    # The script itself double-checks the real Israel local time before sending.
+    - cron: "0 17 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: node scripts/send-reminder.js
+        env:
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
