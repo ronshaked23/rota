@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ROTA</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ROTA">
+<meta name="theme-color" content="#14171C">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: #0B0D10;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #F1F3F5;
+  }
+  .wrap { min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 12px; }
+  .phone {
+    width: 100%; max-width: 400px; background: #14171C; border-radius: 28px;
+    padding: 22px 18px 16px; border: 1px solid #22262E; position: relative; overflow: hidden;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  button:active { transform: scale(0.97); }
+
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .brand { font-size: 24px; letter-spacing: 2px; font-weight: 700; }
+  .brand-sub { font-size: 11px; color: #8A93A0; margin-top: 2px; }
+  .chips { display: flex; gap: 8px; align-items: center; }
+  .chip {
+    display: flex; align-items: center; gap: 5px; background: #1E232B; border: 1px solid #2E3540;
+    border-radius: 20px; padding: 7px 11px; font-size: 13px; font-weight: 600;
+  }
+  .chip.beta-on { background: #2A2233; border-color: #A879E0; color: #A879E0; }
+  .chip.beta-off { color: #5C6470; }
+
+  .rhythm { display: flex; align-items: flex-end; justify-content: space-between; height: 40px; margin-bottom: 20px; }
+  .rbar { width: 4px; border-radius: 2px; }
+
+  .card {
+    background: #1A1E24; border: 1.5px solid; border-radius: 18px;
+    padding: 16px 18px; margin-bottom: 14px; width: 100%; text-align: left; display: block;
+  }
+  .card-top { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .eyebrow { font-size: 10.5px; letter-spacing: 1.5px; color: #8A93A0; font-weight: 700; }
+  .date-sm { font-size: 11px; color: #8A93A0; }
+  .card-main { display: flex; justify-content: space-between; align-items: center; }
+  .day-type { font-size: 30px; font-weight: 700; letter-spacing: 0.5px; }
+  .day-sub { font-size: 12.5px; color: #8A93A0; margin-top: 2px; }
+  .checkbox {
+    width: 46px; height: 46px; border-radius: 14px; border: 1.5px solid;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+  }
+
+  .beta-card {
+    width: 100%; background: #1E1A26; border: 1.5px solid #4A3A63; border-radius: 16px;
+    padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center;
+    justify-content: space-between; text-align: left;
+  }
+  .beta-eyebrow { font-size: 9.5px; letter-spacing: 1.4px; color: #A879E0; font-weight: 700; }
+  .beta-title { font-size: 14px; font-weight: 600; margin-top: 3px; }
+  .beta-sub { font-size: 11px; color: #8A93A0; margin-top: 2px; }
+
+  .cal { background: #1A1E24; border: 1px solid #22262E; border-radius: 18px; padding: 14px 14px 10px; }
+  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cal-month { font-size: 14px; letter-spacing: 1px; font-weight: 600; }
+  .nav { padding: 4px 8px; color: #8A93A0; font-size: 16px; }
+  .week { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 4px; }
+  .week div { text-align: center; font-size: 10px; color: #5C6470; }
+  .grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+  .cell {
+    aspect-ratio: 1; border-radius: 9px; display: flex; align-items: center;
+    justify-content: center; position: relative; font-size: 12px; font-weight: 600;
+  }
+  .cell:active { transform: scale(0.94); }
+  .cell .tick { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #0F1510; }
+  .cell .dot { position: absolute; bottom: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; }
+
+  .save { height: 18px; text-align: center; margin-top: 8px; font-size: 10.5px; color: #5C6470; }
+
+  .overlay {
+    position: absolute; inset: 0; background: #14171C; padding: 22px 18px 18px;
+    display: flex; flex-direction: column;
+  }
+  .ov-head { display: flex; align-items: center; justify-content: space-between; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 10px; background: #1E232B; border: 1px solid #2E3540;
+    display: flex; align-items: center; justify-content: center; color: #8A93A0;
+    font-size: 15px; text-decoration: none; flex-shrink: 0;
+  }
+  .ov-date { font-size: 11px; color: #8A93A0; text-align: center; }
+  .ov-type { font-size: 19px; font-weight: 700; margin-top: 1px; text-align: center; }
+
+  .track { height: 3px; background: #22262E; border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  .prog-note { font-size: 11px; color: #8A93A0; margin-top: 12px; text-align: center; }
+  .list { flex: 1; overflow-y: auto; margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .row {
+    display: flex; align-items: center; gap: 10px; background: #1A1E24;
+    border: 1px solid #22262E; border-radius: 14px; padding: 8px 12px 8px 8px; width: 100%; text-align: left;
+  }
+  .row.done { border-color: rgba(76,208,125,0.35); }
+  .row.done .row-name { color: #8A93A0; }
+  .thumb { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; background: #22262E; flex-shrink: 0; }
+  .row-name { font-size: 13px; font-weight: 500; }
+  .row-muscle { font-size: 11px; color: #8A93A0; margin-top: 1px; }
+  .row-spec { font-size: 12px; color: #8A93A0; flex-shrink: 0; }
+  .row-check {
+    width: 19px; height: 19px; border-radius: 50%; background: #4CD07D; color: #0F1510;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; flex-shrink: 0;
+  }
+
+  .rest { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .rest-dot { width: 14px; height: 14px; border-radius: 50%; margin-bottom: 14px; }
+  .rest-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .rest-sub { font-size: 13px; color: #8A93A0; }
+
+  .footer { display: flex; gap: 10px; margin-top: 14px; }
+  .btn-primary {
+    flex: 1.4; border-radius: 14px; padding: 14px 0; color: #14171C; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-secondary {
+    flex: 1; border: 1.5px solid; border-radius: 14px; padding: 14px 0; background: transparent;
+    font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  .sess-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .sess-muscle { font-size: 11px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+  .sess-name-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
+  .sess-name { font-size: 20px; font-weight: 700; }
+  .stage {
+    width: 190px; height: 190px; border-radius: 20px; border: 1px solid #2E3540; margin-top: 12px;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    background: #F4F5F7; flex-shrink: 0;
+  }
+  .stage.empty { background: #1E232B; color: #8A93A0; font-size: 11.5px; }
+  .stage img { width: 100%; height: 100%; object-fit: contain; }
+  .video-link {
+    display: inline-flex; align-items: center; gap: 5px; border: 1px solid; border-radius: 9px;
+    padding: 6px 12px; font-size: 11px; font-weight: 700; text-decoration: none; margin-top: 8px;
+  }
+  .reps { font-size: 16px; margin-top: 10px; font-weight: 600; }
+  .timer { font-size: 38px; font-weight: 600; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .timer-label { font-size: 11px; color: #8A93A0; margin-top: 4px; }
+  .cue { font-size: 12px; color: #8A93A0; line-height: 1.55; margin-top: 10px; max-width: 320px; }
+
+  .done-circle {
+    width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; margin: 0 auto 16px; color: #0F1510; font-size: 30px; font-weight: 900;
+  }
+  .done-title { font-size: 22px; font-weight: 700; }
+  .done-sub { font-size: 13px; color: #8A93A0; margin-top: 6px; }
+  .center { align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="phone" id="app"></div></div>
+
+<script>
+"use strict";
+
+/* ---------------- Config ---------------- */
+var CYCLE = ["Push", "Pull", "Rest"];
+var META = {
+  Push: { color: "#F2994A", soft: "rgba(242,153,74,0.16)", sub: "Chest \u00B7 Shoulders \u00B7 Triceps" },
+  Pull: { color: "#4FA8C9", soft: "rgba(79,168,201,0.16)", sub: "Back \u00B7 Biceps" },
+  Rest: { color: "#7C8B7A", soft: "rgba(124,139,122,0.16)", sub: "Recovery day" }
+};
+var DONE = "#4CD07D";
+var BETA_TIMER = 8;
+var KEY = "rota:v3";
+var MS_DAY = 86400000;
+
+function fp(p) { return "https://fitnessprogramer.com/wp-content/uploads/" + p; }
+function proxy(u) { return "https://wsrv.nl/?url=" + encodeURIComponent(u.replace(/^https?:\/\//, "")) + "&n=-1"; }
+function chain(path, alt) {
+  var a = [fp(path), proxy(fp(path))];
+  if (alt) { a.push(alt); a.push(proxy(alt)); }
+  return a;
+}
+function yt(name) {
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(name + " exercise proper form");
+}
+
+var PUSH = [
+  { id:"p1", name:"Standing Dumbbell Chest Press", muscle:"Chest", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/09/Dumbbell-Standing-Palms-In-Press.gif"),
+    cue:"Stand tall, dumbbells at chest height, elbows tucked in. Press both straight forward until arms lock, then pull back slowly." },
+  { id:"p2", name:"Standing Svend Press", muscle:"Chest (inner)", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/06/Svend-Press.gif"),
+    cue:"Squeeze one dumbbell hard between both palms at chest height. Press it straight out, keep squeezing, then return." },
+  { id:"p3", name:"Dumbbell Shoulder Press", muscle:"Shoulders", type:"reps", sets:3, reps:10,
+    srcs: chain("2021/02/Dumbbell-Shoulder-Press.gif", "https://app-media.fitbod.me/v2/120/images/landscape/0_960x540.jpg"),
+    cue:"Dumbbells at ear height, elbows out. Press straight overhead until arms lock, then lower under control." },
+  { id:"p4", name:"Dumbbell Lateral Raise", muscle:"Shoulders (side)", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/Dumbbell-Lateral-Raise.gif", "https://app-media.fitbod.me/v2/121/images/landscape/0_960x540.jpg"),
+    cue:"Arms at your sides, slight bend in the elbows. Raise out sideways to shoulder height, no higher. Lower slowly." },
+  { id:"p5", name:"Dumbbell Triceps Kickback", muscle:"Triceps", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/Dumbbell-Kickback.gif", "https://app-media.fitbod.me/v2/113/images/landscape/0_960x540.jpg"),
+    cue:"Hinge forward, upper arms pinned to your ribs. Only the forearms move: straighten back, squeeze, return." }
+];
+
+var PULL = [
+  { id:"l1", name:"Barbell Deadlift (W-bar)", muscle:"Back / Legs", type:"reps", sets:3, reps:8,
+    srcs: chain("2021/02/Barbell-Deadlift.gif"),
+    cue:"Bar over mid-foot, back flat, chest up. Drive through your heels and stand tall. Hinge back down, don't round the back." },
+  { id:"l2", name:"Standing Dumbbell Bent-Over Row", muscle:"Back", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/Dumbbell-Bent-Over-Row.gif", "https://weighttraining.guide/wp-content/uploads/2016/10/bent-over-one-arm-dumbbell-row-resized.png"),
+    cue:"Hinge forward about 45 degrees, back flat. Pull the dumbbells to your ribs, elbows back, squeeze the shoulder blades." },
+  { id:"l3", name:"EZ-Bar Bicep Curl", muscle:"Biceps", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/EZ-Bar-Curl.gif", "https://app-media.fitbod.me/v2/102/images/landscape/0_960x540.jpg"),
+    cue:"Grip the W-bar underhand. Elbows locked at your sides. Curl up, squeeze, lower slowly. No swinging." },
+  { id:"l4", name:"Dumbbell Hammer Curl", muscle:"Biceps", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/Hammer-Curl.gif", "https://app-media.fitbod.me/v2/158/images/landscape/0_960x540.jpg"),
+    cue:"Same as a curl, but palms face each other the whole way (thumbs up, like holding a hammer)." },
+  { id:"l5", name:"Barbell Reverse-Grip Bent-Over Row", muscle:"Back / Biceps", type:"reps", sets:3, reps:12,
+    srcs: chain("2021/02/Reverse-Grip-Bent-Over-Row.gif"),
+    cue:"W-bar with an underhand grip. Hinge forward, pull the bar to your belly button, elbows tight to your body." }
+];
+
+var ABS = [
+  { id:"a1", name:"Crunches", muscle:"Core", type:"timer", duration:60,
+    srcs: chain("2021/02/Crunch.gif", "https://weighttraining.guide/wp-content/uploads/2016/05/Crunch-resized.png"),
+    cue:"On your back, knees bent. Lift your shoulder blades off the floor, hands to the head, don't pull on your neck." },
+  { id:"a2", name:"Bicycle Crunch", muscle:"Core", type:"timer", duration:60,
+    srcs: chain("2021/02/Bicycle-Crunch.gif", "https://weighttraining.guide/wp-content/uploads/2016/11/bicycle-crunch-resized-1.png"),
+    cue:"On your back. Bring the opposite elbow and knee together, alternating, while the other leg extends out." },
+  { id:"a3", name:"Leg Raise", muscle:"Core (lower)", type:"timer", duration:60,
+    srcs: chain("2021/02/Lying-Leg-Raise.gif", "https://app-media.fitbod.me/v2/233/images/landscape/0_960x540.jpg"),
+    cue:"Flat on your back, legs straight. Raise them to vertical, then lower slowly without letting the heels touch the floor." },
+  { id:"a4", name:"Russian Twist", muscle:"Core (obliques)", type:"timer", duration:60,
+    srcs: chain("2021/02/Russian-Twist.gif", "https://spotebi.com/wp-content/uploads/2015/04/russian-twist-exercise-illustration.jpg"),
+    cue:"Sit, lean back, heels up. Rotate your torso side to side, tapping the floor next to each hip." },
+  { id:"a5", name:"Mountain Climbers", muscle:"Core / Cardio", type:"timer", duration:60,
+    srcs: chain("2021/02/Mountain-Climber.gif", "https://spotebi.com/wp-content/uploads/2014/10/mountain-climbers-exercise-illustration.jpg"),
+    cue:"Push-up position, hands under shoulders. Drive the knees to your chest one at a time, fast, hips low." },
+  { id:"a6", name:"Heel Touches", muscle:"Core (obliques)", type:"timer", duration:60,
+    srcs: chain("2021/06/Heel-Touch.gif"),
+    cue:"On your back, knees bent, feet flat, shoulders slightly lifted. Reach side to side and tap each heel with your hand." },
+  { id:"a7", name:"Plank", muscle:"Core", type:"timer", duration:60,
+    srcs: chain("2021/02/Plank.gif", "https://app-media.fitbod.me/v2/270/images/landscape/0_960x540.jpg"),
+    cue:"Forearms under shoulders, body in one straight line from head to heels. Squeeze the glutes, don't let the hips sag." }
+];
+
+var EX = { Push: PUSH.concat(ABS), Pull: PULL.concat(ABS), Rest: [] };
+function betaDay() {
+  var h = JSON.parse(JSON.stringify(ABS[5])); h.duration = 10;
+  var p = JSON.parse(JSON.stringify(ABS[6])); p.duration = 10;
+  return [PUSH[2], PUSH[3], h, p];
+}
+
+/* ---------------- Date helpers ---------------- */
+function sod(d) { var x = new Date(d); x.setHours(0,0,0,0); return x; }
+function key(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function typeFor(d) {
+  var diff = Math.round((sod(d) - sod(S.anchor)) / MS_DAY);
+  return CYCLE[((diff % 3) + 3) % 3];
+}
+function fmt(s) { return Math.floor(s/60) + ":" + String(s % 60).padStart(2,"0"); }
+
+/* ---------------- State ---------------- */
+var TODAY = sod(new Date());
+var S = {
+  anchor: TODAY,
+  completed: {},
+  progress: {},
+  beta: false,
+  view: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
+  screen: "home",     // home | day | session | finished
+  dayKey: null,
+  session: null,
+  saved: ""
+};
+var timerHandle = null;
+
+function load() {
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var p = JSON.parse(raw);
+      if (p.anchor) S.anchor = sod(new Date(p.anchor));
+      S.completed = p.completed || {};
+      S.progress = p.progress || {};
+    }
+  } catch (e) {}
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      anchor: S.anchor.toISOString(), completed: S.completed, progress: S.progress
+    }));
+    S.saved = "Saved";
+    setTimeout(function () { S.saved = ""; render(); }, 900);
+  } catch (e) {}
+}
+
+function doneIdsFor(k) { return (k && k !== "beta" && S.progress[k]) ? S.progress[k] : []; }
+function exercisesFor(k) {
+  if (k === "beta") return betaDay();
+  var d = dateFromKey(k);
+  return EX[typeFor(d)] || [];
+}
+function dateFromKey(k) {
+  var p = k.split("-");
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+
+function toggleExercise(k, id) {
+  if (k === "beta") return;
+  var list = (S.progress[k] || []).slice();
+  var i = list.indexOf(id);
+  if (i >= 0) list.splice(i, 1); else list.push(id);
+  if (list.length) S.progress[k] = list; else delete S.progress[k];
+  save(); render();
+}
+function markDoneEx(k, id) {
+  if (k === "beta") return;
+  var list = (S.progress[k] || []).slice();
+  if (list.indexOf(id) < 0) { list.push(id); S.progress[k] = list; save(); }
+}
+function toggleDay(k) {
+  if (S.completed[k]) delete S.completed[k]; else S.completed[k] = true;
+  save(); render();
+}
+function streak() {
+  var n = 0, c = TODAY;
+  while (n < 400) {
+    var t = typeFor(c);
+    if (!(t === "Rest" || S.completed[key(c)])) break;
+    n++; c = addDays(c, -1);
+  }
+  return n;
+}
+
+/* ---------------- Session ---------------- */
+function startWorkout(k) {
+  var list = exercisesFor(k).map(function (e) {
+    if (S.beta && e.type === "timer") {
+      var c = JSON.parse(JSON.stringify(e));
+      c.duration = Math.min(c.duration, BETA_TIMER);
+      return c;
+    }
+    return e;
+  });
+  if (!list.length) return;
+  var done = doneIdsFor(k);
+  var i = 0;
+  for (var j = 0; j < list.length; j++) {
+    if (done.indexOf(list[j].id) < 0) { i = j; break; }
+    if (j === list.length - 1) i = 0;
+  }
+  var ex = list[i];
+  S.session = {
+    dayKey: k, list: list, i: i,
+    left: ex.type === "timer" ? ex.duration : null,
+    running: true
+  };
+  S.screen = "session";
+  tick(); render();
+}
+function resetDay(k) {
+  delete S.progress[k];
+  save();
+  startWorkout(k);
+}
+function nextExercise() {
+  var s = S.session;
+  markDoneEx(s.dayKey, s.list[s.i].id);
+  s.i++;
+  if (s.i >= s.list.length) {
+    S.screen = "finished";
+    stopTick(); render(); return;
+  }
+  var ex = s.list[s.i];
+  s.left = ex.type === "timer" ? ex.duration : null;
+  s.running = true;
+  tick(); render();
+}
+function finishWorkout() {
+  var s = S.session;
+  if (s && s.dayKey !== "beta") { S.completed[s.dayKey] = true; save(); }
+  S.session = null; S.screen = "home"; S.dayKey = null;
+  stopTick(); render();
+}
+function stopTick() { if (timerHandle) { clearInterval(timerHandle); timerHandle = null; } }
+function tick() {
+  stopTick();
+  var s = S.session;
+  if (!s) return;
+  var ex = s.list[s.i];
+  if (ex.type !== "timer") return;
+  timerHandle = setInterval(function () {
+    if (!S.session || !S.session.running) return;
+    S.session.left--;
+    if (S.session.left <= 0) { nextExercise(); return; }
+    var el = document.getElementById("timer");
+    if (el) el.textContent = fmt(S.session.left);
+  }, 1000);
+}
+
+/* ---------------- Image with fallback chain ---------------- */
+function imgEl(ex, cls) {
+  var img = document.createElement("img");
+  img.className = cls;
+  img.alt = "";
+  img.dataset.i = "0";
+  img.src = ex.srcs[0];
+  img.onerror = function () {
+    var n = (+img.dataset.i) + 1;
+    if (n < ex.srcs.length) { img.dataset.i = String(n); img.src = ex.srcs[n]; }
+    else { img.dataset.failed = "1"; img.style.display = "none"; if (img.parentNode) img.parentNode.classList.add("empty"); }
+  };
+  return img;
+}
+
+/* ---------------- Render ---------------- */
+var app = document.getElementById("app");
+
+function el(tag, cls, txt) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined) e.textContent = txt;
+  return e;
+}
+
+function render() {
+  app.innerHTML = "";
+  if (S.screen === "home") renderHome();
+  else if (S.screen === "day") renderDay();
+  else if (S.screen === "session") renderSession();
+  else if (S.screen === "finished") renderFinished();
+}
+
+function renderHome() {
+  var tKey = key(TODAY), tType = typeFor(TODAY), m = META[tType];
+
+  var head = el("div", "header");
+  var left = el("div");
+  left.appendChild(el("div", "brand", "ROTA"));
+  left.appendChild(el("div", "brand-sub", "Push \u00B7 Pull \u00B7 Rest \u00B7 Repeat"));
+  head.appendChild(left);
+
+  var chips = el("div", "chips");
+  var b = el("button", "chip " + (S.beta ? "beta-on" : "beta-off"), "\u03B2");
+  b.onclick = function () { S.beta = !S.beta; render(); };
+  chips.appendChild(b);
+  chips.appendChild(el("div", "chip", "\uD83D\uDD25 " + streak()));
+  head.appendChild(chips);
+  app.appendChild(head);
+
+  var r = el("div", "rhythm");
+  for (var i = -7; i <= 7; i++) {
+    var d = addDays(TODAY, i), t = typeFor(d), isT = (i === 0);
+    var col = el("div"); col.style.flex = "1"; col.style.display = "flex"; col.style.justifyContent = "center";
+    var bar = el("div", "rbar");
+    bar.style.background = META[t].color;
+    bar.style.opacity = isT ? "1" : "0.42";
+    bar.style.height = isT ? "30px" : "20px";
+    if (isT) bar.style.boxShadow = "0 0 0 2px #14171C, 0 0 0 3.5px " + META[t].color;
+    col.appendChild(bar); r.appendChild(col);
+  }
+  app.appendChild(r);
+
+  if (S.beta) {
+    var bc = el("button", "beta-card");
+    var bl = el("div");
+    bl.appendChild(el("div", "beta-eyebrow", "BETA TEST DAY"));
+    bl.appendChild(el("div", "beta-title", "Run a 4-exercise sample"));
+    bl.appendChild(el("div", "beta-sub", "Timers shortened to 8s. Nothing gets saved."));
+    bc.appendChild(bl);
+    var pl = el("div", null, "\u25B6"); pl.style.color = "#A879E0"; pl.style.fontSize = "16px";
+    bc.appendChild(pl);
+    bc.onclick = function () { S.dayKey = "beta"; S.screen = "day"; render(); };
+    app.appendChild(bc);
+  }
+
+  var card = el("button", "card");
+  card.style.borderColor = m.color + "55";
+  var top = el("div", "card-top");
+  top.appendChild(el("span", "eyebrow", "TODAY"));
+  top.appendChild(el("span", "date-sm", TODAY.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" })));
+  card.appendChild(top);
+  var main = el("div", "card-main");
+  var ml = el("div");
+  var dt = el("div", "day-type", tType); dt.style.color = m.color;
+  ml.appendChild(dt);
+  var pcount = doneIdsFor(tKey).length;
+  var subText = (tType !== "Rest" && pcount > 0 && !S.completed[tKey])
+    ? pcount + " of " + EX[tType].length + " done" : m.sub;
+  ml.appendChild(el("div", "day-sub", subText));
+  main.appendChild(ml);
+  var cb = el("div", "checkbox", "\u2713");
+  var isDone = !!S.completed[tKey];
+  cb.style.background = isDone ? DONE : "transparent";
+  cb.style.borderColor = isDone ? DONE : m.color;
+  cb.style.color = isDone ? "#0F1510" : m.color;
+  main.appendChild(cb);
+  card.appendChild(main);
+  card.onclick = function () { S.dayKey = tKey; S.screen = "day"; render(); };
+  app.appendChild(card);
+
+  var cal = el("div", "cal");
+  var ch = el("div", "cal-head");
+  var prev = el("button", "nav", "\u2039");
+  prev.onclick = function () { S.view = new Date(S.view.getFullYear(), S.view.getMonth()-1, 1); render(); };
+  var nxt = el("button", "nav", "\u203A");
+  nxt.onclick = function () { S.view = new Date(S.view.getFullYear(), S.view.getMonth()+1, 1); render(); };
+  ch.appendChild(prev);
+  ch.appendChild(el("span", "cal-month", S.view.toLocaleDateString("en-US", { month:"long", year:"numeric" })));
+  ch.appendChild(nxt);
+  cal.appendChild(ch);
+
+  var wk = el("div", "week");
+  ["S","M","T","W","T","F","S"].forEach(function (d) { wk.appendChild(el("div", null, d)); });
+  cal.appendChild(wk);
+
+  var g = el("div", "grid");
+  var y = S.view.getFullYear(), mo = S.view.getMonth();
+  var offset = new Date(y, mo, 1).getDay();
+  for (var o = 0; o < offset; o++) g.appendChild(el("div"));
+  var days = new Date(y, mo+1, 0).getDate();
+  for (var dd = 1; dd <= days; dd++) {
+    (function (dd) {
+      var date = new Date(y, mo, dd), k = key(date), t = typeFor(date), mm = META[t];
+      var done = !!S.completed[k], partial = !done && doneIdsFor(k).length > 0;
+      var c = el("button", "cell");
+      c.style.background = done ? DONE : mm.soft;
+      c.style.color = done ? "#0F1510" : mm.color;
+      if (k === tKey) c.style.outline = "1.5px solid #EDEFF2";
+      c.appendChild(document.createTextNode(String(dd)));
+      if (done) c.appendChild(el("span", "tick", "\u2713"));
+      if (partial) { var dot = el("span", "dot"); dot.style.background = mm.color; c.appendChild(dot); }
+      c.onclick = function () { S.dayKey = k; S.screen = "day"; render(); };
+      g.appendChild(c);
+    })(dd);
+  }
+  cal.appendChild(g);
+  app.appendChild(cal);
+  app.appendChild(el("div", "save", S.saved));
+}
+
+function renderDay() {
+  var k = S.dayKey, isBeta = (k === "beta");
+  var date = isBeta ? TODAY : dateFromKey(k);
+  var t = isBeta ? "Push" : typeFor(date);
+  var m = META[t];
+  var list = exercisesFor(k);
+  var done = doneIdsFor(k);
+
+  var ov = el("div", "overlay");
+  var h = el("div", "ov-head");
+  var x = el("button", "icon-btn", "\u2715");
+  x.onclick = function () { S.screen = "home"; S.dayKey = null; render(); };
+  h.appendChild(x);
+  var mid = el("div");
+  mid.appendChild(el("div", "ov-date", isBeta ? "BETA TEST" :
+    date.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" })));
+  var ty = el("div", "ov-type", isBeta ? "Sample workout" : t);
+  ty.style.color = isBeta ? "#A879E0" : m.color;
+  mid.appendChild(ty);
+  h.appendChild(mid);
+  if (!isBeta && done.length > 0) {
+    var rs = el("button", "icon-btn", "\u21BA");
+    rs.onclick = function () { resetDay(k); };
+    h.appendChild(rs);
+  } else {
+    var sp = el("div"); sp.style.width = "30px"; h.appendChild(sp);
+  }
+  ov.appendChild(h);
+
+  if (t === "Rest" && !isBeta) {
+    var rest = el("div", "rest");
+    var rd = el("div", "rest-dot"); rd.style.background = m.color;
+    rest.appendChild(rd);
+    rest.appendChild(el("div", "rest-title", "Rest day"));
+    rest.appendChild(el("div", "rest-sub", "Nothing scheduled. Let the muscles rebuild."));
+    ov.appendChild(rest);
+    app.appendChild(ov);
+    return;
+  }
+
+  if (!isBeta) {
+    var pn = el("div", "prog-note");
+    var num = el("span", null, String(done.length));
+    num.style.color = m.color; num.style.fontWeight = "700";
+    pn.appendChild(num);
+    pn.appendChild(document.createTextNode(" / " + list.length + " done \u00B7 tap a row to check / uncheck"));
+    ov.appendChild(pn);
+  }
+
+  var ul = el("div", "list");
+  list.forEach(function (ex) {
+    var isD = done.indexOf(ex.id) >= 0;
+    var row = el("button", "row" + (isD ? " done" : ""));
+    row.appendChild(imgEl(ex, "thumb"));
+    var mid2 = el("div"); mid2.style.flex = "1"; mid2.style.minWidth = "0";
+    mid2.appendChild(el("div", "row-name", ex.name));
+    mid2.appendChild(el("div", "row-muscle", ex.muscle));
+    row.appendChild(mid2);
+    if (isD) row.appendChild(el("div", "row-check", "\u2713"));
+    else row.appendChild(el("div", "row-spec",
+      ex.type === "timer" ? ex.duration + "s" : ex.sets + " \u00D7 " + ex.reps));
+    if (!isBeta) row.onclick = function () { toggleExercise(k, ex.id); };
+    ul.appendChild(row);
+  });
+  ov.appendChild(ul);
+
+  var f = el("div", "footer");
+  if (!isBeta) {
+    var isDone = !!S.completed[k];
+    var sb = el("button", "btn-secondary", isDone ? "Completed" : "Mark done");
+    sb.style.background = isDone ? DONE : "transparent";
+    sb.style.borderColor = isDone ? DONE : "#2E3540";
+    sb.style.color = isDone ? "#0F1510" : "#8A93A0";
+    sb.onclick = function () { toggleDay(k); };
+    f.appendChild(sb);
+  }
+  var inProg = !isBeta && done.length > 0 && done.length < list.length;
+  var pb = el("button", "btn-primary", (inProg ? "Resume Workout" : "Start Workout"));
+  pb.style.background = isBeta ? "#A879E0" : m.color;
+  pb.onclick = function () { startWorkout(k); };
+  f.appendChild(pb);
+  ov.appendChild(f);
+
+  app.appendChild(ov);
+}
+
+function renderSession() {
+  var s = S.session, ex = s.list[s.i];
+  var isBeta = (s.dayKey === "beta");
+  var t = isBeta ? "Push" : typeFor(dateFromKey(s.dayKey));
+  var m = META[t];
+  var done = doneIdsFor(s.dayKey);
+  var isDone = done.indexOf(ex.id) >= 0;
+
+  var ov = el("div", "overlay");
+  var h = el("div", "ov-head");
+  var x = el("button", "icon-btn", "\u2715");
+  x.onclick = function () { stopTick(); S.session = null; S.screen = "day"; render(); };
+  h.appendChild(x);
+  h.appendChild(el("div", "ov-date", (s.i + 1) + " / " + s.list.length));
+  var link = document.createElement("a");
+  link.className = "icon-btn"; link.href = yt(ex.name); link.target = "_blank"; link.rel = "noreferrer";
+  link.textContent = "\u2197";
+  h.appendChild(link);
+  ov.appendChild(h);
+
+  var tr = el("div", "track");
+  var fl = el("div", "fill");
+  fl.style.background = m.color;
+  fl.style.width = (((s.i + 1) / s.list.length) * 100) + "%";
+  tr.appendChild(fl);
+  ov.appendChild(tr);
+
+  var body = el("div", "sess-body");
+  var mu = el("div", "sess-muscle", ex.muscle); mu.style.color = m.color;
+  body.appendChild(mu);
+
+  var nr = el("div", "sess-name-row");
+  nr.appendChild(el("span", "sess-name", ex.name));
+  if (!isBeta && isDone) {
+    var chk = el("button", "row-check", "\u2713");
+    chk.onclick = function () { toggleExercise(s.dayKey, ex.id); };
+    nr.appendChild(chk);
+  }
+  body.appendChild(nr);
+
+  var stage = el("div", "stage");
+  var img = imgEl(ex, "");
+  stage.appendChild(img);
+  body.appendChild(stage);
+
+  var vl = document.createElement("a");
+  vl.className = "video-link"; vl.href = yt(ex.name); vl.target = "_blank"; vl.rel = "noreferrer";
+  vl.textContent = "\u25B6 Watch full video";
+  vl.style.borderColor = m.color + "66"; vl.style.color = m.color;
+  body.appendChild(vl);
+
+  if (ex.type === "timer") {
+    var tm = el("div", "timer", fmt(s.left)); tm.id = "timer";
+    body.appendChild(tm);
+    body.appendChild(el("div", "timer-label", s.running ? "in progress" : "paused"));
+  } else {
+    body.appendChild(el("div", "reps", ex.sets + " sets \u00D7 " + ex.reps + " reps"));
+  }
+  body.appendChild(el("div", "cue", ex.cue));
+  ov.appendChild(body);
+
+  var f = el("div", "footer");
+  if (ex.type === "timer") {
+    var pz = el("button", "btn-secondary", s.running ? "Pause" : "Resume");
+    pz.style.borderColor = m.color; pz.style.color = m.color;
+    pz.onclick = function () { S.session.running = !S.session.running; render(); };
+    f.appendChild(pz);
+  }
+  var cont = el("button", "btn-primary", "Continue \u2192");
+  cont.style.background = m.color;
+  cont.onclick = function () { nextExercise(); };
+  f.appendChild(cont);
+  ov.appendChild(f);
+
+  app.appendChild(ov);
+}
+
+function renderFinished() {
+  var isBeta = S.session && S.session.dayKey === "beta";
+  var t = isBeta ? "Push" : typeFor(dateFromKey(S.session.dayKey));
+  var m = META[t];
+  var ov = el("div", "overlay center");
+  var box = el("div"); box.style.textAlign = "center";
+  var c = el("div", "done-circle", "\u2713");
+  c.style.background = isBeta ? "#A879E0" : DONE;
+  box.appendChild(c);
+  box.appendChild(el("div", "done-title", isBeta ? "Beta run finished" : "Workout complete"));
+  box.appendChild(el("div", "done-sub", isBeta ? "Test only \u2014 nothing was saved." : "Logged as done. The day turns green."));
+  var b = el("button", "btn-primary", "Done");
+  b.style.background = isBeta ? "#A879E0" : m.color;
+  b.style.margin = "22px auto 0"; b.style.maxWidth = "160px";
+  b.onclick = function () { finishWorkout(); };
+  box.appendChild(b);
+  ov.appendChild(box);
+  app.appendChild(ov);
+}
+
+load();
+render();
+</script>
+</body>
+</html>
