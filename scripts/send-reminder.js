@@ -18,6 +18,7 @@ if (!subJson) {
   console.log("No PUSH_SUBSCRIPTION secret set yet, skipping.");
   process.exit(0);
 }
+subJson = subJson.replace(/^﻿/, "").trim();
 
 var subscription = JSON.parse(subJson);
 
