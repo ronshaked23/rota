@@ -175,7 +175,7 @@ var DONE = "#4CD07D";
 var BETA_TIMER = 8;
 var KEY = "rota:v3";
 var MS_DAY = 86400000;
-var VAPID_PUBLIC_KEY = "BCEvcsGqxMMCoC9CLbDX0Azo8ln45q0HbAEx8fMSIds6kKJucRyINmJTMvEfK7dK0LDAAZlcvqPYld6dc_F7s4E";
+var VAPID_PUBLIC_KEY = "BKu6pfyHe9qU1QzWwdiqTxduCz-YDYppORpAzqjaKGOHtU7x1I80yTBFECIQyUV2L_fD4KYuUs77216aCtM8k_8";
 
 function fp(p) { return "https://fitnessprogramer.com/wp-content/uploads/" + p; }
 function proxy(u) { return "https://wsrv.nl/?url=" + encodeURIComponent(u.replace(/^https?:\/\//, "")) + "&n=-1"; }
@@ -311,10 +311,18 @@ async function enableReminders() {
     var reg = await navigator.serviceWorker.register("./sw.js");
     var perm = await Notification.requestPermission();
     if (perm !== "granted") { alert("Notification permission was not granted."); return; }
+    var appKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
     var existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      var oldKey = existing.options && existing.options.applicationServerKey
+        ? new Uint8Array(existing.options.applicationServerKey) : null;
+      var same = oldKey && oldKey.length === appKey.length &&
+        oldKey.every(function (v, i) { return v === appKey[i]; });
+      if (!same) { await existing.unsubscribe(); existing = null; }
+    }
     var sub = existing || await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      applicationServerKey: appKey
     });
     S.reminderOn = true;
     S.reminderSub = JSON.stringify(sub);
