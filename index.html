@@ -19,6 +19,8 @@
   .phone {
     width: 100%; max-width: 400px; background: #14171C; border-radius: 28px;
     padding: 22px 18px 16px; border: 1px solid #22262E; position: relative; overflow: hidden;
+    min-height: 680px; height: calc(100vh - 40px); max-height: 820px;
+    display: flex; flex-direction: column;
   }
   button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
   button:active { transform: scale(0.97); }
@@ -61,7 +63,8 @@
   .beta-title { font-size: 14px; font-weight: 600; margin-top: 3px; }
   .beta-sub { font-size: 11px; color: #8A93A0; margin-top: 2px; }
 
-  .cal { background: #1A1E24; border: 1px solid #22262E; border-radius: 18px; padding: 14px 14px 10px; }
+  .cal { background: #1A1E24; border: 1px solid #22262E; border-radius: 18px; padding: 14px 14px 10px; flex-shrink: 0; }
+  .spacer { flex: 1; }
   .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .cal-month { font-size: 14px; letter-spacing: 1px; font-weight: 600; }
   .nav { padding: 4px 8px; color: #8A93A0; font-size: 16px; }
@@ -541,6 +544,7 @@ function renderHome() {
   }
   cal.appendChild(g);
   app.appendChild(cal);
+  app.appendChild(el("div", "spacer"));
   app.appendChild(el("div", "save", S.saved));
 }
 
