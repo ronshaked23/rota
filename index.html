@@ -336,6 +336,60 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
+  /* ---------- Progress ring (today card) ---------- */
+  .ring-wrap {
+    position: relative; width: 58px; height: 58px;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .ring-wrap .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring-wrap .checkbox { width: 44px; height: 44px; border-radius: var(--r-sm); }
+  .ring circle { transition: stroke-dashoffset 400ms var(--ease); }
+
+  /* ---------- Streak stats ---------- */
+  .stats-row {
+    display: flex; align-items: center; justify-content: center; gap: var(--s2);
+    margin: -10px 0 var(--s4); font-size: 11.5px;
+  }
+  .stats-item { display: inline-flex; align-items: baseline; gap: 5px; }
+  .stats-k {
+    font-family: var(--f-display); letter-spacing: 1.2px;
+    color: var(--text-3); font-weight: 600; font-size: 10.5px;
+  }
+  .stats-v { color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats-sep { color: var(--text-3); }
+
+  /* ---------- Set pips (session) ---------- */
+  .set-row { display: flex; gap: 6px; margin-top: var(--s3); }
+  .pip {
+    width: 26px; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.14);
+    transition: background-color var(--dur) var(--ease);
+  }
+  .pip-now { box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }
+
+  /* ---------- Workout note ---------- */
+  .note-label {
+    display: block; text-align: left; margin-top: var(--s5);
+    font-family: var(--f-display); font-size: 11.5px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--text-2); font-weight: 600;
+  }
+  .note-box {
+    height: 84px; margin-top: 6px; font-size: 13px;
+    font-family: var(--f-body); text-align: left;
+  }
+  .note-box::placeholder { color: var(--text-3); }
+  .day-note {
+    display: flex; gap: var(--s2); align-items: baseline;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-sm); padding: var(--s2) var(--s3);
+    margin-top: var(--s2); font-size: 12.5px; color: var(--text-2);
+    line-height: 1.45; text-align: left;
+  }
+  .day-note-k {
+    font-family: var(--f-display); font-size: 10px; letter-spacing: 1.2px;
+    color: var(--text-3); font-weight: 600; flex-shrink: 0;
+  }
+
   /* ---------- Motion preference ---------- */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -372,6 +426,14 @@ var DONE = "#4CD07D";
 var BETA_TIMER = 8;
 var KEY = "rota:v3";
 var MS_DAY = 86400000;
+var FEEDBACK_EMAIL = "ricocir1234@gmail.com";
+/* Rest between sets, in seconds. Heavy compound lifts get longer. */
+var REST_DEFAULT = 60;
+var REST_BY_ID = { p1: 75, p3: 90, l1: 120, l2: 90, l5: 90 };
+function restFor(ex) {
+  if (ex.type !== "reps") return 0;
+  return S.beta ? BETA_TIMER : (REST_BY_ID[ex.id] || REST_DEFAULT);
+}
 var VAPID_PUBLIC_KEY = "BKu6pfyHe9qU1QzWwdiqTxduCz-YDYppORpAzqjaKGOHtU7x1I80yTBFECIQyUV2L_fD4KYuUs77216aCtM8k_8";
 
 function fp(p) { return "https://fitnessprogramer.com/wp-content/uploads/" + p; }
@@ -477,7 +539,8 @@ var S = {
   session: null,
   saved: "",
   reminderOn: false,
-  reminderSub: null
+  reminderSub: null,
+  notes: {}
 };
 var timerHandle = null;
 
@@ -538,17 +601,24 @@ function load() {
       if (p.anchor) S.anchor = sod(new Date(p.anchor));
       S.completed = p.completed || {};
       S.progress = p.progress || {};
+      S.notes = p.notes || {};
     }
   } catch (e) {}
 }
-function save() {
+/* Write to storage without triggering a re-render — safe to call while typing. */
+function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      anchor: S.anchor.toISOString(), completed: S.completed, progress: S.progress
+      anchor: S.anchor.toISOString(), completed: S.completed,
+      progress: S.progress, notes: S.notes
     }));
-    S.saved = "Saved";
-    setTimeout(function () { S.saved = ""; render(); }, 900);
-  } catch (e) {}
+    return true;
+  } catch (e) { return false; }
+}
+function save() {
+  if (!persist()) return;
+  S.saved = "Saved";
+  setTimeout(function () { S.saved = ""; render(); }, 900);
 }
 
 function doneIdsFor(k) { return (k && k !== "beta" && S.progress[k]) ? S.progress[k] : []; }
@@ -588,6 +658,23 @@ function streak() {
   }
   return n;
 }
+/* Longest streak ever + total workouts logged. Same rule as streak():
+   a day holds the chain if it is a Rest day or was completed. */
+function stats() {
+  var done = Object.keys(S.completed).filter(function (k) { return S.completed[k]; });
+  var best = streak();
+  if (done.length) {
+    var first = done.map(dateFromKey).sort(function (a, b) { return a - b; })[0];
+    var c = sod(first), run = 0, guard = 0;
+    while (c <= TODAY && guard++ < 4000) {
+      if (typeFor(c) === "Rest" || S.completed[key(c)]) {
+        run++; if (run > best) best = run;
+      } else run = 0;
+      c = addDays(c, 1);
+    }
+  }
+  return { best: best, total: done.length };
+}
 
 /* ---------------- Session ---------------- */
 function startWorkout(k) {
@@ -609,11 +696,34 @@ function startWorkout(k) {
   var ex = list[i];
   S.session = {
     dayKey: k, list: list, i: i,
+    set: 1, resting: false,
     left: ex.type === "timer" ? ex.duration : null,
-    running: true
+    running: true,
+    startedAt: Date.now()
   };
   S.screen = "session";
   tick(); render();
+}
+/* One set finished. Rest before the next set; skip the rest after the last one. */
+function setDone() {
+  var s = S.session, ex = s.list[s.i];
+  if (s.set < (ex.sets || 1)) {
+    s.resting = true;
+    s.left = restFor(ex);
+    s.running = true;
+    tick(); render();
+  } else {
+    nextExercise();
+  }
+}
+function endRest() {
+  var s = S.session;
+  if (!s) return;
+  s.resting = false;
+  s.set++;
+  s.left = null;
+  s.running = true;
+  stopTick(); render();
 }
 function resetDay(k) {
   delete S.progress[k];
@@ -624,6 +734,8 @@ function nextExercise() {
   var s = S.session;
   markDoneEx(s.dayKey, s.list[s.i].id);
   s.i++;
+  s.set = 1;
+  s.resting = false;
   if (s.i >= s.list.length) {
     S.screen = "finished";
     stopTick(); render(); return;
@@ -645,11 +757,14 @@ function tick() {
   var s = S.session;
   if (!s) return;
   var ex = s.list[s.i];
-  if (ex.type !== "timer") return;
+  if (!s.resting && ex.type !== "timer") return;
   timerHandle = setInterval(function () {
     if (!S.session || !S.session.running) return;
     S.session.left--;
-    if (S.session.left <= 0) { nextExercise(); return; }
+    if (S.session.left <= 0) {
+      if (S.session.resting) endRest(); else nextExercise();
+      return;
+    }
     var el = document.getElementById("timer");
     if (el) el.textContent = fmt(S.session.left);
   }, 1000);
@@ -734,6 +849,38 @@ function iconBtn(tag, cls, name, label, size) {
   return b;
 }
 
+/* Circular progress ring. pct is 0..1. */
+function ringEl(pct, color, size, stroke) {
+  var NS = "http://www.w3.org/2000/svg";
+  var r = (size - stroke) / 2;
+  var circ = 2 * Math.PI * r;
+  var s = document.createElementNS(NS, "svg");
+  s.setAttribute("width", size);
+  s.setAttribute("height", size);
+  s.setAttribute("viewBox", "0 0 " + size + " " + size);
+  s.setAttribute("class", "ring");
+  s.setAttribute("aria-hidden", "true");
+  s.setAttribute("focusable", "false");
+  ["track", "arc"].forEach(function (kind) {
+    var c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", size / 2);
+    c.setAttribute("cy", size / 2);
+    c.setAttribute("r", r);
+    c.setAttribute("fill", "none");
+    c.setAttribute("stroke-width", stroke);
+    c.setAttribute("stroke-linecap", "round");
+    if (kind === "track") {
+      c.setAttribute("stroke", "rgba(255,255,255,0.10)");
+    } else {
+      c.setAttribute("stroke", color);
+      c.setAttribute("stroke-dasharray", circ.toFixed(2));
+      c.setAttribute("stroke-dashoffset", (circ * (1 - Math.max(0, Math.min(1, pct)))).toFixed(2));
+    }
+    s.appendChild(c);
+  });
+  return s;
+}
+
 function render() {
   app.innerHTML = "";
   if (S.screen === "home") renderHome();
@@ -788,6 +935,19 @@ function renderHome() {
   }
   app.appendChild(r);
 
+  var st2 = stats();
+  var sr = el("div", "stats-row");
+  [["BEST", st2.best + (st2.best === 1 ? " day" : " days")],
+   ["TOTAL", st2.total + (st2.total === 1 ? " workout" : " workouts")]
+  ].forEach(function (pair, pi) {
+    if (pi) sr.appendChild(el("span", "stats-sep", "·"));
+    var g = el("span", "stats-item");
+    g.appendChild(el("span", "stats-k", pair[0]));
+    g.appendChild(el("span", "stats-v", pair[1]));
+    sr.appendChild(g);
+  });
+  app.appendChild(sr);
+
   if (S.beta) {
     var bc = el("button", "beta-card");
     var bl = el("div");
@@ -823,7 +983,16 @@ function renderHome() {
   cb.style.background = isDone ? DONE : "transparent";
   cb.style.borderColor = isDone ? DONE : m.color;
   cb.style.color = isDone ? "#0F1510" : m.color;
-  main.appendChild(cb);
+  if (tType === "Rest") {
+    main.appendChild(cb);
+  } else {
+    var rwrap = el("div", "ring-wrap");
+    var totalEx = EX[tType].length;
+    var pct = isDone ? 1 : (totalEx ? pcount / totalEx : 0);
+    rwrap.appendChild(ringEl(pct, isDone ? DONE : m.color, 58, 3.5));
+    rwrap.appendChild(cb);
+    main.appendChild(rwrap);
+  }
   card.appendChild(main);
   card.setAttribute("aria-label", "Today, " + tType + ", " + (isDone ? "completed" : "not completed") + ". Open day.");
   card.onclick = function () { S.dayKey = tKey; S.screen = "day"; render(); };
@@ -925,6 +1094,12 @@ function renderDay() {
     pn.appendChild(num);
     pn.appendChild(document.createTextNode(" / " + list.length + " done \u00B7 tap a row to check / uncheck"));
     ov.appendChild(pn);
+    if (S.notes[k]) {
+      var nt = el("div", "day-note");
+      nt.appendChild(el("span", "day-note-k", "NOTE"));
+      nt.appendChild(el("span", null, S.notes[k]));
+      ov.appendChild(nt);
+    }
   }
 
   var ul = el("div", "list");
@@ -1002,6 +1177,34 @@ function renderSession() {
   tr.appendChild(fl);
   ov.appendChild(tr);
 
+  /* ---- Rest between sets ---- */
+  if (s.resting) {
+    var rb = el("div", "sess-body");
+    var rl = el("div", "sess-muscle", "REST"); rl.style.color = m.color;
+    rb.appendChild(rl);
+    var rt = el("div", "timer", fmt(s.left)); rt.id = "timer";
+    rb.appendChild(rt);
+    rb.appendChild(el("div", "timer-label", s.running ? "recovering" : "paused"));
+    var upNext = el("div", "cue",
+      "Next up: set " + (s.set + 1) + " of " + ex.sets + " — " + ex.name);
+    rb.appendChild(upNext);
+    ov.appendChild(rb);
+
+    var rf = el("div", "footer");
+    var rp = el("button", "btn-secondary", s.running ? "Pause" : "Resume");
+    rp.style.borderColor = m.color; rp.style.color = m.color;
+    rp.onclick = function () { S.session.running = !S.session.running; render(); };
+    rf.appendChild(rp);
+    var sk = el("button", "btn-primary", "Skip rest");
+    sk.style.background = m.color;
+    sk.onclick = function () { endRest(); };
+    rf.appendChild(sk);
+    ov.appendChild(rf);
+
+    app.appendChild(ov);
+    return;
+  }
+
   var body = el("div", "sess-body");
   var mu = el("div", "sess-muscle", ex.muscle); mu.style.color = m.color;
   body.appendChild(mu);
@@ -1032,7 +1235,15 @@ function renderSession() {
     body.appendChild(tm);
     body.appendChild(el("div", "timer-label", s.running ? "in progress" : "paused"));
   } else {
-    body.appendChild(el("div", "reps", ex.sets + " sets \u00D7 " + ex.reps + " reps"));
+    var rw = el("div", "set-row");
+    for (var si = 1; si <= ex.sets; si++) {
+      var pip = el("span", "pip" + (si < s.set ? " pip-done" : si === s.set ? " pip-now" : ""));
+      if (si <= s.set) pip.style.background = si < s.set ? DONE : m.color;
+      rw.appendChild(pip);
+    }
+    body.appendChild(rw);
+    var rp2 = el("div", "reps", "Set " + s.set + " of " + ex.sets + " \u00B7 " + ex.reps + " reps");
+    body.appendChild(rp2);
   }
   body.appendChild(el("div", "cue", ex.cue));
   ov.appendChild(body);
@@ -1044,9 +1255,11 @@ function renderSession() {
     pz.onclick = function () { S.session.running = !S.session.running; render(); };
     f.appendChild(pz);
   }
-  var cont = el("button", "btn-primary", "Continue \u2192");
+  var isLastSet = ex.type === "timer" || s.set >= ex.sets;
+  var cont = el("button", "btn-primary",
+    ex.type === "timer" ? "Continue \u2192" : (isLastSet ? "Finish exercise \u2192" : "Set done"));
   cont.style.background = m.color;
-  cont.onclick = function () { nextExercise(); };
+  cont.onclick = function () { if (ex.type === "timer") nextExercise(); else setDone(); };
   f.appendChild(cont);
   ov.appendChild(f);
 
@@ -1054,20 +1267,59 @@ function renderSession() {
 }
 
 function renderFinished() {
-  var isBeta = S.session && S.session.dayKey === "beta";
-  var t = isBeta ? "Push" : typeFor(dateFromKey(S.session.dayKey));
+  var s = S.session;
+  var isBeta = s && s.dayKey === "beta";
+  var dayKey = s ? s.dayKey : key(TODAY);
+  var t = isBeta ? "Push" : typeFor(dateFromKey(dayKey));
   var m = META[t];
+  var mins = (s && s.startedAt) ? Math.max(1, Math.round((Date.now() - s.startedAt) / 60000)) : null;
+  var exCount = s ? s.list.length : 0;
+
   var ov = el("div", "overlay center");
-  var box = el("div"); box.style.textAlign = "center";
+  var box = el("div"); box.style.textAlign = "center"; box.style.width = "100%";
   var c = el("div", "done-circle");
   c.appendChild(svg("check", 32));
   c.style.background = isBeta ? "#A879E0" : DONE;
   box.appendChild(c);
   box.appendChild(el("div", "done-title", isBeta ? "Beta run finished" : "Workout complete"));
-  box.appendChild(el("div", "done-sub", isBeta ? "Test only \u2014 nothing was saved." : "Logged as done. The day turns green."));
+  box.appendChild(el("div", "done-sub", isBeta
+    ? "Test only \u2014 nothing was saved."
+    : t + " \u00b7 " + exCount + " exercises" + (mins ? " \u00b7 " + mins + " min" : "")));
+
+  if (!isBeta) {
+    var lbl = el("label", "note-label", "How did it go? Anything to fix?");
+    lbl.setAttribute("for", "note-input");
+    box.appendChild(lbl);
+    var ta = document.createElement("textarea");
+    ta.id = "note-input";
+    ta.className = "sub-box note-box";
+    ta.placeholder = "e.g. shoulder press felt too heavy, rest too short on deadlifts\u2026";
+    ta.value = S.notes[dayKey] || "";
+    ta.oninput = function () {
+      if (ta.value.trim()) S.notes[dayKey] = ta.value; else delete S.notes[dayKey];
+      persist();
+    };
+    box.appendChild(ta);
+
+    var send = el("button", "btn-secondary", "Send to Claude");
+    send.style.borderColor = m.color; send.style.color = m.color;
+    send.style.margin = "10px auto 0"; send.style.maxWidth = "220px";
+    send.onclick = function () {
+      var note = (S.notes[dayKey] || "").trim();
+      if (!note) { alert("Write a note first, then send."); return; }
+      var body = "Date: " + dayKey + "\nWorkout: " + t +
+        "\nExercises: " + exCount + (mins ? "\nDuration: " + mins + " min" : "") +
+        "\n\nFeedback:\n" + note + "\n";
+      window.location.href = "mailto:" + FEEDBACK_EMAIL +
+        "?subject=" + encodeURIComponent("ROTA feedback " + dayKey) +
+        "&body=" + encodeURIComponent(body);
+    };
+    box.appendChild(send);
+  }
+
   var b = el("button", "btn-primary", "Done");
   b.style.background = isBeta ? "#A879E0" : m.color;
-  b.style.margin = "22px auto 0"; b.style.maxWidth = "160px";
+  b.style.margin = "10px auto 0"; b.style.maxWidth = "220px";
   b.onclick = function () { finishWorkout(); };
   box.appendChild(b);
   ov.appendChild(box);
